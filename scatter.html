@@ -2,287 +2,280 @@
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Document</title>
-	<script src="https://d3js.org/d3.v7.min.js"></script>
-    <!-- <script src="./Mine/jqueryv3.6.0.js"></script> -->
-	<style>
-		* {
-			padding: 0;
-			margin: 0;
-			box-sizing: border-box;
-		}
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>悬浮气泡图效果</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+      box-sizing: border-box;
+    }
 
-		#container {
-			height: 100%;
-			width: 100%;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			justify-content: center;
-		}
-	</style>
+    #container {
+      height: 100%;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
 </head>
 
 <body style="background: lightgray;">
-	<div id="container"></div>
-	<script>
-		const BubbleChart = (
-            data,
-            {
-                name = ([x]) => x, // alias for label
-                label = name, // given d in data, returns text to display on the bubble
-                value = ([, y]) => y, // given d in data, returns a quantitative size
-                group, // given d in data, returns a categorical value for color
-                title, // given d in data, returns text to show on hover
-                link, // given a node d, its link (if any)
-                linkTarget = "_blank", // the target attribute for links, if any
-                width = 640, // outer width, in pixels
-                height = width, // outer height, in pixels
-                padding = 90, // padding between circles
-                margin = 1, // default margins
-                marginTop = 20 * margin, // top margin, in pixels
-                marginRight = 0, // right margin, in pixels
-                marginBottom = 20 * margin, // bottom margin, in pixels
-                marginLeft = 0, // left margin, in pixels
-                groups, // array of group names (the domain of the color scale)
-                colors = d3.schemeTableau10, // an array of colors (for groups)
-                fill = "#ccc", // a static fill color, if no group channel is specified
-                fillOpacity = 0.7, // the fill opacity of the bubbles
-                stroke, // a static stroke around the bubbles
-                strokeWidth, // the stroke width around the bubbles, if any
-                strokeOpacity, // the stroke opacity around the bubbles, if any
-            } = {}
-        ) => {
-            data.length = 1
-            const D = d3.map(data, d => d);
-            const V = d3.map(data, value);
-            const G = group == null ? null : d3.map(data, group);
-            const I = d3.range(V.length).filter(i => V[i] > 0);
-            // Unique the groups.
-            if (G && groups === undefined) groups = I.map(i => G[i]);
-            groups = G && new d3.InternSet(groups);
+  <div id="container"></div>
+  <script>
+    // TODO: 待简化代码，d3 或 原生js可能会有更简化的思路(SVG-path: https://codepen.io/nirjan_dev/pen/vYEmpgb)
+    const BubbleChart = (
+      data,
+      {
+        name = ([x]) => x, // alias for label
+        label = name, // given d in data, returns text to display on the bubble
+        value = ([, y]) => y, // given d in data, returns a quantitative size
+        group, // given d in data, returns a categorical value for color
+        title, // given d in data, returns text to show on hover
+        link, // given a node d, its link (if any)
+        linkTarget = "_blank", // the target attribute for links, if any
+        width = 640, // outer width, in pixels
+        height = width, // outer height, in pixels
+        padding = 90, // padding between circles
+        margin = 1, // default margins
+        marginTop = 20 * margin, // top margin, in pixels
+        marginRight = 0, // right margin, in pixels
+        marginBottom = 20 * margin, // bottom margin, in pixels
+        marginLeft = 0, // left margin, in pixels
+        groups, // array of group names (the domain of the color scale)
+        colors = d3.schemeTableau10, // an array of colors (for groups)
+        fill = "#ccc", // a static fill color, if no group channel is specified
+        fillOpacity = 0.7, // the fill opacity of the bubbles
+        stroke, // a static stroke around the bubbles
+        strokeWidth, // the stroke width around the bubbles, if any
+        strokeOpacity, // the stroke opacity around the bubbles, if any
+      } = {}
+    ) => {
+      const D = d3.map(data, d => d);
+      const V = d3.map(data, value);
+      const G = group == null ? null : d3.map(data, group);
+      const I = d3.range(V.length).filter(i => V[i] > 0);
+      // Unique the groups.
+      if (G && groups === undefined) groups = I.map(i => G[i]);
+      groups = G && new d3.InternSet(groups);
 
-            // Construct scales.
-            const color = G && d3.scaleOrdinal(groups, colors);
+      // Construct scales.
+      const color = G && d3.scaleOrdinal(groups, colors);
 
-            // Compute labels and titles.
-            const L = label == null ? null : d3.map(data, label);
-            const T = title === undefined ? L : title == null ? null : d3.map(data, title);
+      // Compute labels and titles.
+      const L = label == null ? null : d3.map(data, label);
+      const T = title === undefined ? L : title == null ? null : d3.map(data, title);
 
-            const root = d3.pack()
-                .size([width - marginLeft - marginRight, height - marginTop - marginBottom])
-                .padding(padding)(d3.hierarchy({children: I})
-                .sum(i => V[i]));
-            const containerEl = document.getElementById('container')
-            const svg = d3.select(containerEl)
-                .append("svg")
-                .attr("width", width)
-                .attr("height", height)
-                .attr("viewBox", [-marginLeft, -marginTop, width, height])
-                .attr("style", "max-width: 100%; height: auto; height: intrinsic;")
-                .attr("fill", "currentColor")
-                .attr("font-size", 10)
-                .attr("font-family", "sans-serif")
-                .attr("text-anchor", "middle");
+      const root = d3.pack()
+                      .size([width - marginLeft - marginRight, height - marginTop - marginBottom])
+                      .padding(padding)(d3.hierarchy({ children: I })
+                      .sum(i => V[i]));
+      const containerEl = document.getElementById('container')
+      const svg = d3.select(containerEl)
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height)
+                    .attr("viewBox", [-marginLeft, -marginTop, width, height])
+                    .attr("style", "max-width: 100%; height: auto; height: intrinsic;")
+                    .attr("fill", "currentColor")
+                    .attr("font-size", 10)
+                    .attr("font-family", "sans-serif")
+                    .attr("text-anchor", "middle");
 
-            const leafs = svg.selectAll("g")
-                .data(root.leaves())
-                .join("g")
-                .attr("transform", d => `translate(${d.x},${d.y})`);
+      const leafs = svg.selectAll("g")
+                        .data(root.leaves())
+                        .join("g")
+                        .attr("transform", d => `translate(${d.x},${d.y})`);
 
-            const circle = leafs.append("circle")
-                .attr("stroke", stroke)
-                .attr("stroke-width", strokeWidth)
-                .attr("stroke-opacity", strokeOpacity)
-                .attr("fill", G ? d => color(G[d.data]) : fill == null ? "none" : fill)
-                .attr("fill-opacity", fillOpacity)
-                .attr("r", d => d.r)
-            if (T) leafs.append("title")
-                .text(d => T[d.data]);
-            if (L) {
-                // A unique identifier for clip paths (to avoid conflicts).
-                const uid = `O-${Math.random().toString(16).slice(2)}`;
+      const circle = leafs.append("circle")
+                          .attr("stroke", stroke)
+                          .attr("stroke-width", strokeWidth)
+                          .attr("stroke-opacity", strokeOpacity)
+                          .attr("fill", G ? d => color(G[d.data]) : fill == null ? "none" : fill)
+                          .attr("fill-opacity", fillOpacity)
+                          .attr("r", d => d.r)
+      if (T) leafs.append("title").text(d => T[d.data]);
+      if (L) {
+        // A unique identifier for clip paths (to avoid conflicts).
+        const uid = `O-${Math.random().toString(16).slice(2)}`;
 
-                leafs.append("clipPath")
-                    .attr("id", d => `${uid}-clip-${d.data}`)
-                .append("circle")
-                    .attr("r", d => d.r);
+        leafs.append("clipPath")
+              .attr("id", d => `${uid}-clip-${d.data}`)
+              .append("circle")
+              .attr("r", d => d.r);
 
-                leafs.append("text")
-                    .attr("clip-path", d => `url(${new URL(`#${uid}-clip-${d.data}`, location)})`)
-                    .style('pointer-events', 'none')
-                .selectAll("tspan")
-                .data(d => `${L[d.data]}`.split(/\n/g))
-                .join("tspan")
-                    .attr("x", 0)
-                    .attr("y", (d, i, D) => `${i - D.length / 2 + 0.85}em`)
-                    .attr("fill-opacity", (d, i, D) => i === D.length - 1 ? 0.7 : null)
-                    .style('pointer-events', 'none')
-                    .text(d => d)
-                    .style('pointer-events', 'none');
+        leafs.append("text")
+              .attr("clip-path", d => `url(${new URL(`#${uid}-clip-${d.data}`, location)})`)
+              .style('pointer-events', 'none')
+              .selectAll("tspan")
+              .data(d => `${L[d.data]}`.split(/\n/g))
+              .join("tspan")
+              .attr("x", 0)
+              .attr("y", (d, i, D) => `${i - D.length / 2 + 0.85}em`)
+              .attr("fill-opacity", (d, i, D) => i === D.length - 1 ? 0.7 : null)
+              .style('pointer-events', 'none')
+              .text(d => d)
+              .style('pointer-events', 'none');
+      }
+      const animationFn = ({ leaf, _index }, direction, init = 1, { lastX = null, lastY = null, lastT = null, last_direction = null }) => {
+        let isStopAnimation = false
+        d3.select(leaf).transition()
+          .duration(1500)
+          .tween('', (u, index, gs) => {
+            return (t) => {
+              d3.select(gs[0]).attr('transform', (l) => {
+                const offsetY = 0.25 * l.r
+                const offsetX = 0.025 * l.r
+                const y0 = offsetY * (direction) * (_index % 2 > 0 ? 1 : -1) / 2 * init * -1
+                const y1 = offsetY * (direction) * (_index % 2 > 0 ? 1 : -1) / 2
+                const interpolateY = d3.interpolate(y0, y1)
+                let radian = direction > 0 ? 0 : Math.PI;
+                const vs = 0.01
+                const maxI = Math.ceil(Math.PI / vs)
+                const xCoordData = []
+                for (let i = 0; i < maxI; i++) {
+                  if (direction > 0) {
+                    radian += vs
+                  } else {
+                    radian -= vs
+                  }
+                  xCoordData.push(offsetX * Math.sin(radian) * (direction > 0 ? -1 : -1) * 2)
+                }
+                const length = xCoordData.length - 1
+                const interpolateX = d3.interpolate(0, length)
+                const xStep = xCoordData[Math.ceil(interpolateX(t))]
+
+                if (isStopAnimation) {
+                  lastX = lastX || xStep
+                  lastT = lastT || Math.ceil(interpolateX(t))
+                  lastY = lastY || interpolateY(t)
+                  last_direction = last_direction || direction
+                  return `translate(${l.x + lastX}, ${l.y + lastY})`
+                }
+                if (last_direction === null && lastT === null && lastX === null && lastY === null) {
+                  return `translate(${l.x + xStep}, ${l.y + interpolateY(t)})`
+                }
+                if (last_direction && last_direction === direction && (Math.abs(lastT - Math.ceil(interpolateX(t)))) <= 2) { // 绝对值取差值对比
+                  lastT = null
+                  last_direction = null
+                  lastX = null
+                  lastY = null
+                  return `translate(${l.x + xStep}, ${l.y + interpolateY(t)})`
+                } else {
+                  return `translate(${l.x + lastX}, ${l.y + lastY})`
+                }
+              })
             }
-            let iii = 0
-            const animationFn = ({leaf, _index}, direction, init = 1, {lastX = null, lastY = null, lastT = null, last_Dir = null}) => {
-                let isStopAnimation = false
-                d3.select(leaf).transition()
-                .duration(1500)
-                .tween('', (u, index, gs) => {
-                    return (t) => {
-                        d3.select(gs[0]).attr('transform', (l) => {
-                            const distanceY = 0.25 * l.r
-                            const distanceX = 0.025 * l.r
-                            const y0 = distanceY * (direction) * (_index % 2 > 0 ? 1 : -1) / 2 * init * -1
-                            const y1 = distanceY * (direction) * (_index % 2 > 0 ? 1 : -1) / 2
-                            const interpolateY = d3.interpolate(y0, y1)
-                            let s = direction > 0 ? 0 : Math.PI;
-                            const vs = 0.01
-                            const maxI = Math.ceil(Math.PI / vs)
-                            const xCoord = []
-                            for (let i = 0; i < maxI; i ++) {
-                                if (direction > 0) {
-                                    s += vs
-                                } else {
-                                    s -= vs
-                                }
-                                xCoord.push(distanceX * Math.sin(s) * (direction > 0 ? -1 : -1) * 2)
-                            }
-                            const length = xCoord.length - 1
-                            const interpolateX = d3.interpolate(0, length)
-                            const xStep = xCoord[Math.ceil(interpolateX(t))]
-                            
-                            if (isStopAnimation) {
-                                lastX = lastX || xStep
-                                lastT = lastT || Math.ceil(interpolateX(t))
-                                lastY = lastY || interpolateY(t)
-                                last_Dir = last_Dir || direction
-                                return `translate(${l.x + lastX}, ${l.y + lastY})`
-                            }
-                            if(last_Dir === null && lastT === null && lastX === null && lastY === null) {
-                                return `translate(${l.x + xStep}, ${l.y + interpolateY(t)})`
-                            }
-                            if (last_Dir && last_Dir === direction && (Math.abs(lastT - Math.ceil(interpolateX(t)))) <= 2) { // 绝对值取差值对比
-                                lastT = null
-                                last_Dir = null
-                                lastX = null
-                                lastY = null
-                                return `translate(${l.x + xStep}, ${l.y + interpolateY(t)})`
-                            } else {
-                                return `translate(${l.x + lastX}, ${l.y + lastY})`
-                            }
-                        })
-                    }
-                })
-                .delay((d, i) => {
-                    if (!init) {
-                        return _index * 100
-                    }
-                    return 0
-                })
-                .ease(d3.easeLinear)
-                .on('end', () => {
-                    // console.log('end', isStopAnimation, last_Dir, lastT);
-                    if (isStopAnimation) {
-                        return
-                    }
-                    animationFn({leaf, _index}, -direction, undefined, {lastX, lastY, lastT, last_Dir})
-                })
-                d3.select(leaf).on('mouseover', function($e, p) {
-                    isStopAnimation = true
-                    // d3.interrupt(this) 立即停止动画
-                }).on('mouseout', (...rest) => {
-                    isStopAnimation = false
-                    animationFn({leaf, _index}, last_Dir, undefined, {lastX, lastY, lastT, last_Dir})
-                })
+          })
+          .delay((d, i) => {
+            if (!init) {
+              return _index * 100
             }
-            this.timers = [] // 数据更新及组件销毁时要清空！！！
-            leafs.each(function(p, _index, leaf) {
-                animationFn({leaf: this, _index}, 1, 0, {})
-            })
-        }
+            return 0
+          })
+          .ease(d3.easeLinear)
+          .on('end', () => {
+            if (isStopAnimation) { return }
+            animationFn({ leaf, _index }, -direction, undefined, { lastX, lastY, lastT, last_direction })
+          })
+        d3.select(leaf).on('mouseover', function ($e, p) {
+          isStopAnimation = true
+          // d3.interrupt(this) 立即停止动画
+        }).on('mouseout', () => {
+          isStopAnimation = false
+          animationFn({ leaf, _index }, last_direction, undefined, { lastX, lastY, lastT, last_direction })
+        })
+      }
+      leafs.each(function (p, _index, leaf) {
+        animationFn({ leaf: this, _index }, 1, 0, {})
+      })
+    }
     const files = [
-        {
-            "id": "flare.analytics.cluster.AgglomerativeCluster",
-            "value": 3938
-        },
-        {
-            "id": "flare.analytics.cluster.CommunityStructure",
-            "value": 3812
-        },
-        {
-            "id": "flare.analytics.cluster.HierarchicalCluster",
-            "value": 6714
-        },
-        {
-            "id": "flare.analytics.cluster.MergeEdge",
-            "value": 743
-        },
-        {
-            "id": "flare.analytics.graph.BetweennessCentrality",
-            "value": 3534
-        },
-        {
-            "id": "flare.analytics.graph.LinkDistance",
-            "value": 5731
-        },
-        {
-            "id": "flare.analytics.graph.MaxFlowMinCut",
-            "value": 7840
-        },
-        {
-            "id": "flare.analytics.graph.ShortestPaths",
-            "value": 5914
-        },
-        {
-            "id": "flare.analytics.graph.SpanningTree",
-            "value": 3416
-        },
-        {
-            "id": "flare.analytics.optimization.AspectRatioBanker",
-            "value": 7074
-        },
-        {
-            "id": "flare.animate.Easing",
-            "value": 17010
-        },
-        {
-            "id": "flare.animate.FunctionSequence",
-            "value": 5842
-        },
-        {
-            "id": "flare.animate.interpolate.ArrayInterpolator",
-            "value": 1983
-        },
-        {
-            "id": "flare.animate.interpolate.ColorInterpolator",
-            "value": 2047
-        },
-        {
-            "id": "flare.animate.interpolate.DateInterpolator",
-            "value": 1375
-        },
-        {
-            "id": "flare.animate.interpolate.Interpolator",
-            "value": 8746
-        },
-        {
-            "id": "flare.animate.interpolate.MatrixInterpolator",
-            "value": 2202
-        },
-        {
-            "id": "flare.animate.interpolate.NumberInterpolator",
-            "value": 1382
-        },
-        {
-            "id": "flare.animate.interpolate.ObjectInterpolator",
-            "value": 1629
-        },
-        {
-            "id": "flare.animate.interpolate.PointInterpolator",
-            "value": 1675
-        }
+      {
+        "id": "flare.analytics.cluster.AgglomerativeCluster",
+        "value": 3938
+      },
+      {
+        "id": "flare.analytics.cluster.CommunityStructure",
+        "value": 3812
+      },
+      {
+        "id": "flare.analytics.cluster.HierarchicalCluster",
+        "value": 6714
+      },
+      {
+        "id": "flare.analytics.cluster.MergeEdge",
+        "value": 743
+      },
+      {
+        "id": "flare.analytics.graph.BetweennessCentrality",
+        "value": 3534
+      },
+      {
+        "id": "flare.analytics.graph.LinkDistance",
+        "value": 5731
+      },
+      {
+        "id": "flare.analytics.graph.MaxFlowMinCut",
+        "value": 7840
+      },
+      {
+        "id": "flare.analytics.graph.ShortestPaths",
+        "value": 5914
+      },
+      {
+        "id": "flare.analytics.graph.SpanningTree",
+        "value": 3416
+      },
+      {
+        "id": "flare.analytics.optimization.AspectRatioBanker",
+        "value": 7074
+      },
+      {
+        "id": "flare.animate.Easing",
+        "value": 17010
+      },
+      {
+        "id": "flare.animate.FunctionSequence",
+        "value": 5842
+      },
+      {
+        "id": "flare.animate.interpolate.ArrayInterpolator",
+        "value": 1983
+      },
+      {
+        "id": "flare.animate.interpolate.ColorInterpolator",
+        "value": 2047
+      },
+      {
+        "id": "flare.animate.interpolate.DateInterpolator",
+        "value": 1375
+      },
+      {
+        "id": "flare.animate.interpolate.Interpolator",
+        "value": 8746
+      },
+      {
+        "id": "flare.animate.interpolate.MatrixInterpolator",
+        "value": 2202
+      },
+      {
+        "id": "flare.animate.interpolate.NumberInterpolator",
+        "value": 1382
+      },
+      {
+        "id": "flare.animate.interpolate.ObjectInterpolator",
+        "value": 1629
+      },
+      {
+        "id": "flare.animate.interpolate.PointInterpolator",
+        "value": 1675
+      }
     ]
     const chart = BubbleChart(files, {
       label: d => [...d.id.split(".").pop().split(/(?=[A-Z][a-z])/g), d.value.toLocaleString("en")].join("\n"),
@@ -292,7 +285,7 @@
       link: d => `https://github.com/prefuse/Flare/blob/master/flare/src/${d.id.replace(/\./g, "/")}.as`,
       width: 1152
     })
-	</script>
+  </script>
 </body>
 
 </html>
