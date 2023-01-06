@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>笛卡尔心形线</title>
+
+    <style>
+      body {
+        background: #ffd;
+      }
+
+      .main {
+        width: 500px;
+        margin: 0px auto;
+        padding: 0;
+      }
+
+      #heart {
+        /*background: #ccc;*/
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="main">
+      <canvas id="heart" width="600" height="600"></canvas>
+    </div>
+
+    <script>
+      let canvas = document.querySelector("canvas");
+      let context = canvas.getContext("2d");
+      console.log(context);
+      context.lineWidth = 2;
+      // 设置画布的 (0,0) 点
+      context.translate(300, 300);
+      // 弧度
+      let t = 0;
+      // 每次增长多少弧度
+      let vt = 0.01;
+      // 最大弧度
+      let maxt = 2 * Math.PI;
+      // 根据增长弧度得循环次数
+      let maxi = Math.ceil(maxt / vt);
+      let pointArr = [];
+      // 步长越大，画的形状越大
+      let size = 100;
+      let x = 0;
+      let y = 0;
+      for (let i = 0; i <= maxi; i++) {
+        x = size * (2 * Math.sin(t) + Math.sin(2 * t));
+        y = size * (2 * Math.cos(t) + Math.cos(2 * t));
+        t += vt;
+        pointArr.push([x, y]);
+      }
+      pointArr.reverse();
+      context.moveTo(pointArr[0][0], pointArr[0][1]);
+      console.log(pointArr);
+      let idx = 2;
+      context.fillStyle = "#c00";
+      context.strokeStyle = "#c00";
+      let tt = "";
+
+      slowly();
+      // draw();
+      function slowly() {
+        x = pointArr[idx][0];
+        y = pointArr[idx][1];
+        context.lineTo(x, y);
+        if (idx + 1 >= pointArr.length) {
+          context.fill();
+          clearTimeout(tt);
+        } else {
+          idx++;
+          clearTimeout(tt);
+          tt = setTimeout("slowly()", 2);
+          context.stroke();
+        }
+      }
+
+      function draw() {
+        context.fillStyle = "#c00";
+        for (let i = 1; i < pointArr.length; i++) {
+          x = pointArr[i][0];
+          y = pointArr[i][1];
+          context.lineTo(x, y);
+        }
+        context.fill();
+      }
+    </script>
+  </body>
+</html>
