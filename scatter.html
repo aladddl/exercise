@@ -173,9 +173,7 @@
             }
           })
           .delay((d, i) => {
-            if (!init) {
-              return _index * 100
-            }
+            if (!init) { return _index * 100 }
             return 0
           })
           .ease(d3.easeLinear)
