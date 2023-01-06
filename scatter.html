@@ -127,15 +127,13 @@
             let iii = 0
             const animationFn = ({leaf, _index}, direction, init = 1, {lastX = null, lastY = null, lastT = null, last_Dir = null}) => {
                 let isStopAnimation = false
-                console.log('start', lastT);
                 d3.select(leaf).transition()
                 .duration(1500)
                 .tween('', (u, index, gs) => {
-                    const d = Math.random()
                     return (t) => {
                         d3.select(gs[0]).attr('transform', (l) => {
                             const distanceY = 0.25 * l.r
-                            const distanceX = 0.025 * l.r // * d
+                            const distanceX = 0.025 * l.r
                             const y0 = distanceY * (direction) * (_index % 2 > 0 ? 1 : -1) / 2 * init * -1
                             const y1 = distanceY * (direction) * (_index % 2 > 0 ? 1 : -1) / 2
                             const interpolateY = d3.interpolate(y0, y1)
@@ -162,28 +160,18 @@
                                 last_Dir = last_Dir || direction
                                 return `translate(${l.x + lastX}, ${l.y + lastY})`
                             }
-                            if (last_Dir) {
-                                // if (lastT - Math.ceil(interpolateX(t)) === 1) console.log('111');
-                                if (lastT - Math.ceil(interpolateX(t) === 1) && last_Dir === direction) {
-                                    lastT = null
-                                    last_Dir = null
-                                    console.log('~~~~~~');
-                                    return `translate(${l.x + xStep}, ${l.y + interpolateY(t)})`
-                                } else {
-                                    return `translate(${l.x + lastX}, ${l.y + lastY})`
-                                }
-                            } else {
-                                last_Dir = null
+                            if(last_Dir === null && lastT === null && lastX === null && lastY === null) {
                                 return `translate(${l.x + xStep}, ${l.y + interpolateY(t)})`
                             }
-
-                            // if (lastT !== t && (last_Dir !== direction && last_Dir !== null)) {
-                            //     console.log(1111);
-                            //     return `translate(${l.x + lastX}, ${l.y + lastY})`
-                            // } else {
-                            //     last_Dir = null
-                            //     return `translate(${l.x + xStep}, ${l.y + interpolateY(t)})`
-                            // }
+                            if (last_Dir && last_Dir === direction && (Math.abs(lastT - Math.ceil(interpolateX(t)))) <= 2) { // 绝对值取差值对比
+                                lastT = null
+                                last_Dir = null
+                                lastX = null
+                                lastY = null
+                                return `translate(${l.x + xStep}, ${l.y + interpolateY(t)})`
+                            } else {
+                                return `translate(${l.x + lastX}, ${l.y + lastY})`
+                            }
                         })
                     }
                 })
@@ -195,21 +183,18 @@
                 })
                 .ease(d3.easeLinear)
                 .on('end', () => {
-                    console.log('end', isStopAnimation, last_Dir, lastT);
+                    // console.log('end', isStopAnimation, last_Dir, lastT);
                     if (isStopAnimation) {
                         return
                     }
-                    if(!last_Dir) {
-                        console.log(last_Dir);
-                        animationFn({leaf, _index}, -direction, undefined, {})
-                    }
+                    animationFn({leaf, _index}, -direction, undefined, {lastX, lastY, lastT, last_Dir})
                 })
                 d3.select(leaf).on('mouseover', function($e, p) {
-                    // d3.zoom().scaleBy(d3.select(this), 0.5, [0,0])
                     isStopAnimation = true
+                    // d3.interrupt(this) 立即停止动画
                 }).on('mouseout', (...rest) => {
                     isStopAnimation = false
-                    animationFn({leaf, _index}, -direction, undefined, {lastX, lastY, lastT, last_Dir})
+                    animationFn({leaf, _index}, last_Dir, undefined, {lastX, lastY, lastT, last_Dir})
                 })
             }
             this.timers = [] // 数据更新及组件销毁时要清空！！！
