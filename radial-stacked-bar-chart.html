@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>径向堆叠柱状图</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+      }
+      html, body {
+        height: 100%;
+        width: 100%;
+      }
+      #container {
+        height: auto;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+
+  <body style="background: lightgray">
+    <div id="container"></div>
+    <script>
+      // 参考 https://observablehq.com/@d3/radial-stacked-bar-chart-ii
+      const width = 600;
+      const height = width;
+      const innerRadius = 150;
+      const outerRadius = 180; // Math.min(width, height) * 0.67
+      let data = [
+        {
+            "State": "CA",
+            "Under 5 Years": 2704659,
+            "total": 36756666
+        },
+        {
+            "State": "TX",
+            "Under 5 Years": 2027307,
+            "total": 24326974
+        },
+        {
+            "State": "NY",
+            "Under 5 Years": 1208495,
+            "total": 19490297
+        },
+        {
+            "State": "FL",
+            "Under 5 Years": 1140516,
+            "total": 18328340
+        },
+        {
+            "State": "IL",
+            "Under 5 Years": 894368,
+            "total": 12901563
+        },
+        {
+            "State": "PA",
+            "Under 5 Years": 737462,
+            "total": 12448279
+        },
+        {
+            "State": "OH",
+            "Under 5 Years": 743750,
+            "total": 11485910
+        },
+        {
+            "State": "MI",
+            "Under 5 Years": 625526,
+            "total": 10003422
+        },
+        {
+            "State": "GA",
+            "Under 5 Years": 740521,
+            "total": 9685744
+        },
+        {
+            "State": "NC",
+            "Under 5 Years": 652823,
+            "total": 9222414
+        },
+        {
+            "State": "NJ",
+            "Under 5 Years": 557421,
+            "total": 8682661
+        },
+        {
+            "State": "VA",
+            "Under 5 Years": 522672,
+            "total": 7769089
+        },
+        {
+            "State": "WA",
+            "Under 5 Years": 433119,
+            "total": 6549224
+        },
+        {
+            "State": "AZ",
+            "Under 5 Years": 515910,
+            "total": 6500180
+        },
+        {
+            "State": "MA",
+            "Under 5 Years": 383568,
+            "total": 6497967
+        },
+        {
+            "State": "IN",
+            "Under 5 Years": 443089,
+            "total": 6376792
+        },
+        {
+            "State": "TN",
+            "Under 5 Years": 416334,
+            "total": 6214888
+        },
+        {
+            "State": "MO",
+            "Under 5 Years": 399450,
+            "total": 5911605
+        },
+        {
+            "State": "MD",
+            "Under 5 Years": 371787,
+            "total": 5633597
+        },
+        {
+            "State": "WI",
+            "Under 5 Years": 362277,
+            "total": 5627967
+        },
+        {
+            "State": "MN",
+            "Under 5 Years": 358471,
+            "total": 5220393
+        },
+        {
+            "State": "CO",
+            "Under 5 Years": 358280,
+            "total": 4939456
+        },
+        {
+            "State": "AL",
+            "Under 5 Years": 310504,
+            "total": 4661900
+        },
+        {
+            "State": "SC",
+            "Under 5 Years": 303024,
+            "total": 4479800
+        },
+        {
+            "State": "LA",
+            "Under 5 Years": 310716,
+            "total": 4410796
+        },
+        {
+            "State": "KY",
+            "Under 5 Years": 284601,
+            "total": 4269245
+        },
+        {
+            "State": "OR",
+            "Under 5 Years": 243483,
+            "total": 3790060
+        },
+        {
+            "State": "OK",
+            "Under 5 Years": 266547,
+            "total": 3642361
+        },
+        {
+            "State": "CT",
+            "Under 5 Years": 211637,
+            "total": 3501252
+        },
+        {
+            "State": "IA",
+            "Under 5 Years": 201321,
+            "total": 3002555
+        },
+        {
+            "State": "MS",
+            "Under 5 Years": 220813,
+            "total": 2938618
+        },
+        {
+            "State": "AR",
+            "Under 5 Years": 202070,
+            "total": 2855390
+        },
+        {
+            "State": "KS",
+            "Under 5 Years": 202529,
+            "total": 2802134
+        },
+        {
+            "State": "UT",
+            "Under 5 Years": 268916,
+            "total": 2736424
+        },
+        {
+            "State": "NV",
+            "Under 5 Years": 199175,
+            "total": 2600167
+        },
+        {
+            "State": "NM",
+            "Under 5 Years": 148323,
+            "total": 1984356
+        },
+        {
+            "State": "WV",
+            "Under 5 Years": 105435,
+            "total": 1814468
+        },
+        {
+            "State": "NE",
+            "Under 5 Years": 132092,
+            "total": 1783432
+        },
+        {
+            "State": "ID",
+            "Under 5 Years": 121746,
+            "total": 1523816
+        },
+        {
+            "State": "ME",
+            "Under 5 Years": 71459,
+            "total": 1316456
+        },
+        {
+            "State": "NH",
+            "Under 5 Years": 75297,
+            "total": 1315809
+        },
+        {
+            "State": "HI",
+            "Under 5 Years": 87207,
+            "total": 1288198
+        },
+        {
+            "State": "RI",
+            "Under 5 Years": 60934,
+            "total": 1050788
+        },
+        {
+            "State": "MT",
+            "Under 5 Years": 61114,
+            "total": 967440
+        },
+        {
+            "State": "DE",
+            "Under 5 Years": 59319,
+            "total": 873092
+        },
+        {
+            "State": "SD",
+            "Under 5 Years": 58566,
+            "total": 804194
+        },
+        {
+            "State": "AK",
+            "Under 5 Years": 52083,
+            "total": 686293
+        },
+        {
+            "State": "ND",
+            "Under 5 Years": 41896,
+            "total": 641481
+        },
+        {
+            "State": "VT",
+            "Under 5 Years": 32635,
+            "total": 621270
+        },
+        {
+            "State": "DC",
+            "Under 5 Years": 36352,
+            "total": 591833
+        },
+        {
+            "State": "WY",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y1",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y1",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y1",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y2",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y3",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y4",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y5",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y6",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y7",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y8",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y9",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y10",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y11",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y12",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y13",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+        {
+            "State": "Y14",
+            "Under 5 Years": 38253,
+            "total": 532668
+        },
+      ]
+      data.forEach((d) => {
+        d.total = d['Under 5 Years']
+      })
+      for (let i = 15; i < 400; i++) {
+        const total = Math.random() * 5000000
+        data.push({
+          State: 'Y' + i,
+          'Under 5 Years': total,
+          total
+        })
+      }
+      data.columns = ['State', 'Under 5 Years']
+      // arc = ƒ()
+      const arc = d3.arc()
+                    .innerRadius(d => y(d[0]))
+                    .outerRadius(d => y(d[1]))
+                    .startAngle(d => x(d.data.State))
+                    .endAngle(d => x(d.data.State) + x.bandwidth())
+                    .padAngle(0.001)
+                    .padRadius(innerRadius)
+      // x = ƒ(i)
+      const x = d3.scaleBand()
+                  .domain(data.map(d => d.State))
+                  .range([0, 2 * Math.PI])
+                  .align(0)
+      // y = f(t)
+      const y = d3.scaleRadial()
+                  .domain([0, d3.max(data, d => d.total) * 1.12]) // * 1.12 是为了让柱体外侧不贴近外半径
+                  .range([innerRadius, outerRadius])
+      // z = f(i)
+      const z = d3.scaleOrdinal()
+                  .domain(data.columns.slice(1))
+                  .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"])
+      // xAxis = ƒ(g)
+      const xAxis = g => g.attr("text-anchor", "middle")
+                          .append('circle')
+                          .attr('r', innerRadius - 1)
+                          .attr('stroke', 'rgb(148,156,165)')
+                          .attr('stroke-width', '2')
+                          .attr('fill', 'none')
+      // yAxis = ƒ(g)
+      const yAxis = g => g.attr("text-anchor", "end")
+                    .call(g => g.selectAll("g")
+                      .data(y.ticks(1).slice(1))
+                      .join("g")
+                        .attr("fill", "none")
+                        .call(g => g.append("circle")
+                            .attr("stroke", "#000")
+                            .attr("stroke-opacity", 0.5)
+                            .attr("r", outerRadius))
+                    )
+      // legend = ƒ(g)
+      const legend = g => g.append("g")
+                            .selectAll("g")
+                            .data(data.columns.slice(1).reverse())
+                            .join("g")
+                              .attr("transform", (d, i) => `translate(-40,${(i - (data.columns.length - 1) / 2) * 20})`)
+                              .call(g => g.append("rect")
+                                  .attr("width", 18)
+                                  .attr("height", 18)
+                                  .attr("fill", z))
+                              .call(g => g.append("text")
+                                  .attr("x", 24)
+                                  .attr("y", 9)
+                                  .attr("dy", "0.35em")
+                                  .text(d => d))
+      const containerEl = document.getElementById('container')
+      const svg = d3.select(containerEl)
+                    .append('svg')
+                    .attr("viewBox", `${-outerRadius - 1} ${-outerRadius - 1} ${2 * outerRadius + 2} ${2 * outerRadius + 2}`)
+                    .style("width", "100%")
+                    .style("height", "auto")
+                    .style("font", "10px sans-serif");
+      svg.append("g")
+          .selectAll("g")
+          .data(d3.stack().keys(data.columns.slice(1))(data))
+          .join("g")
+          .attr("fill", (d) => z(d.key))
+          .selectAll("path")
+          .data((d) => d)
+          .join("path")
+          .attr("d", arc);
+
+      svg.append("g").call(xAxis);
+
+      svg.append("g").call(yAxis);
+
+      // svg.append("g").call(legend);
+
+      // return svg.node();
+    </script>
+  </body>
+</html>
